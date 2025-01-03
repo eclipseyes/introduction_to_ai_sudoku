@@ -39,8 +39,8 @@
    <widget class="QLabel" name="title">
     <property name="geometry">
      <rect>
-      <x>130</x>
-      <y>-10</y>
+      <x>270</x>
+      <y>30</y>
       <width>901</width>
       <height>271</height>
      </rect>
@@ -54,7 +54,7 @@
      </font>
     </property>
     <property name="text">
-     <string>对角线数独游戏</string>
+     <string>数独游戏</string>
     </property>
    </widget>
    <widget class="QLabel" name="writer">
@@ -73,7 +73,7 @@
      </font>
     </property>
     <property name="text">
-     <string>设计者：邱月</string>
+     <string/>
     </property>
    </widget>
    <widget class="QPushButton" name="game">

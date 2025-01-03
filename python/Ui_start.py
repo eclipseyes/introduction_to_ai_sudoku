@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'c:\Users\Qiu\Desktop\杂\python\start.ui'
+# Form implementation generated from reading ui file 'c:\Users\Qiu\Desktop\mess\sudoku_project\python\start.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.9
 #
@@ -23,7 +23,7 @@ class Ui_MainWindow(object):
         self.listWidget.setGeometry(QtCore.QRect(0, -20, 1061, 671))
         self.listWidget.setObjectName("listWidget")
         self.title = QtWidgets.QLabel(self.centralwidget)
-        self.title.setGeometry(QtCore.QRect(130, -10, 901, 271))
+        self.title.setGeometry(QtCore.QRect(270, 30, 901, 271))
         font = QtGui.QFont()
         font.setFamily("Arial Black")
         font.setPointSize(72)
@@ -37,6 +37,7 @@ class Ui_MainWindow(object):
         font.setFamily("Bookman Old Style")
         font.setPointSize(26)
         self.writer.setFont(font)
+        self.writer.setText("")
         self.writer.setObjectName("writer")
         self.game = QtWidgets.QPushButton(self.centralwidget)
         self.game.setGeometry(QtCore.QRect(120, 390, 371, 111))
@@ -67,7 +68,6 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
-        self.title.setText(_translate("MainWindow", "对角线数独游戏"))
-        self.writer.setText(_translate("MainWindow", "设计者：邱月"))
+        self.title.setText(_translate("MainWindow", "数独游戏"))
         self.game.setText(_translate("MainWindow", "开始游戏"))
         self.rules.setText(_translate("MainWindow", "游戏规则"))

@@ -64,6 +64,6 @@ class Ui_MainWindow(object):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
         self.label.setText(_translate("MainWindow", "选择模式"))
-        self.upload.setText(_translate("MainWindow", "SAT求解"))
-        self.puzzle.setText(_translate("MainWindow", "随机出题"))
+        self.upload.setText(_translate("MainWindow", "人工设置初盘"))
+        self.puzzle.setText(_translate("MainWindow", "自动生成初盘"))
         self.mode_back.setText(_translate("MainWindow", "返回"))

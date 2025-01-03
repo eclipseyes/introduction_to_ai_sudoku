@@ -11,6 +11,7 @@ from Ui_upload import Ui_MainWindow as Ui_UploadWindow
 from Ui_difficulty import Ui_MainWindow as Ui_DifficultyWindow
 from Ui_game import Ui_MainWindow as Ui_GameWindow
 
+
 class MainApp(QMainWindow):
     def __init__(self):
         super(MainApp, self).__init__()
@@ -31,6 +32,7 @@ class MainApp(QMainWindow):
         self.upload_ui = Ui_UploadWindow()
         self.difficulty_ui = Ui_DifficultyWindow()
         self.game_ui = Ui_GameWindow()
+        
 
         # 加载界面
         self.start_widget = QMainWindow()
@@ -68,16 +70,6 @@ class MainApp(QMainWindow):
         self.difficulty_ui.difficulty_back.clicked.connect(self.show_mode)
         self.upload_ui.upload_back.clicked.connect(self.show_mode)
 
-        self.upload_ui.file_choose.clicked.connect(self.on_file_choose_clicked)
-        self.upload_ui.solve_button.clicked.connect(self.on_solve_button_clicked)
-        self.upload_ui.better_solve_button_1.clicked.connect(lambda: self.on_better_solve_button_clicked(1))
-        self.upload_ui.better_solve_button_2.clicked.connect(lambda: self.on_better_solve_button_clicked(2))
-        self.upload_ui.better_solve_button_3.clicked.connect(lambda: self.on_better_solve_button_clicked(3))
-
-        self.upload_ui.source_button.clicked.connect(self.open_source_file)
-        self.upload_ui.save_button.clicked.connect(self.open_saved_file)
-        self.upload_ui.dpll_button.clicked.connect(self.open_dpll_file)
-        self.upload_ui.cdcl_button.clicked.connect(self.open_cdcl_file)
 
         # 绑定难度按钮，传递不同的参数来生成对角线数独题目
         self.difficulty_ui.easy.clicked.connect(lambda: self.prepare_game("easy"))
@@ -249,223 +241,6 @@ class MainApp(QMainWindow):
         except Exception as e:
             print(f"Error loading puzzle to UI: {e}")
 
-    def on_file_choose_clicked(self):
-        # 每次选择文件前，重置UI状态
-        self.upload_ui.judge.clear()
-        self.upload_ui.saved_path.clear()
-        self.upload_ui.optimization_rate.clear()
-        self.upload_ui.dpll_time.clear()
-        self.upload_ui.dpll_address.clear()
-        self.upload_ui.cdcl_time.clear()
-        self.upload_ui.cdcl_address.clear()
-
-        self.upload_ui.judge_label.hide()
-        self.upload_ui.judge.hide()
-        self.upload_ui.saved_path_label.hide()
-        self.upload_ui.saved_path.hide()
-        self.upload_ui.rate_label.hide()
-        self.upload_ui.optimization_rate.hide()
-        self.upload_ui.dpll_time_label.hide()
-        self.upload_ui.dpll_time.hide()
-        self.upload_ui.dpll_address_label.hide()
-        self.upload_ui.dpll_address.hide()
-        self.upload_ui.cdcl_time_label.hide()
-        self.upload_ui.cdcl_time.hide()
-        self.upload_ui.cdcl_address_label.hide()
-        self.upload_ui.cdcl_address.hide()
-        self.upload_ui.dpll_button.hide()
-        self.upload_ui.cdcl_button.hide()
-
-        file_path, _ = QFileDialog.getOpenFileName(self, "选择文件", "", "CNF Files (*.cnf);;All Files (*)")
-        if file_path:
-            file_path = os.path.abspath(file_path)
-            print(f"Chosen file path: {file_path}")
-
-            self.upload_ui.cnf_path.setText(file_path)
-            self.upload_ui.cnf_path.show()
-
-            if not os.path.exists(file_path):
-                print("Error: File does not exist.")
-                return
-            
-            cnf_parser_path = os.path.join(self.c_programs_dir, 'cnf_parser.exe')
-
-            if not os.path.exists(cnf_parser_path):
-                print(f"Error: cnf_parser.exe not found at {cnf_parser_path}")
-                return
-            
-            saved_path = os.path.abspath("output_result.txt")
-            
-            try:
-                # 指定编码为 utf-8
-                result = subprocess.run([cnf_parser_path, file_path, saved_path], check=True, capture_output=True, text=True, encoding='utf-8')
-                print(f"Parsing completed, results saved to: {saved_path}")
-                print(f"C program output: {result.stdout}")
-            except subprocess.CalledProcessError as e:
-                print(f"Parsing error: {e}")
-                print(f"C program error output: {e.stderr}")
-            except Exception as e:
-                print(f"Other error: {e}")
-
-            self.upload_ui.saved_path.setText(saved_path)
-            self.upload_ui.saved_path.show()
-            self.upload_ui.saved_path_label.show()
-            self.upload_ui.solve_button.show()
-            self.upload_ui.source_button.show()
-            self.upload_ui.save_button.show()
-
-    def on_solve_button_clicked(self):
-        """执行 solver.exe """
-        cnf_file_path = self.upload_ui.cnf_path.text()
-        if not cnf_file_path:
-            print("No CNF file selected.")
-            return
-
-        result_file_path = cnf_file_path + ".res"
-        solver_path = os.path.join(self.c_programs_dir, 'solver.exe')
-
-
-        try:
-            # 指定编码为 utf-8
-            result = subprocess.run([solver_path, cnf_file_path], check=True, capture_output=True, text=True, encoding='utf-8')
-            print(f"Solving completed, results saved to: {result_file_path}")
-            print(f"Solver output: {result.stdout}")
-
-            self.upload_ui.dpll_address.setText(result_file_path)
-            self.upload_ui.dpll_address.show()
-            
-            # 读取生成的结果文件
-            if os.path.exists(result_file_path):
-                with open(result_file_path, 'r') as f:
-                    lines = f.readlines()
-                    result_status = None
-                    solve_time = None
-                    for line in lines:
-                        if line.startswith('s'):
-                            result_status = line.strip()
-                        elif line.startswith('t'):
-                            solve_time = line.strip().split(' ')[1]
-
-                    if result_status == 's 1':
-                        self.upload_ui.dpll_time.setText(f"{solve_time} ms")
-                        self.upload_ui.judge.setText("有解")
-                    elif result_status == 's 0':
-                        self.upload_ui.dpll_time.setText(f"{solve_time} ms")
-                        self.upload_ui.judge.setText("无解")
-
-        except subprocess.CalledProcessError as e:
-            print(f"Error running solver: {e}")
-            print(f"Solver error output: {e.stderr}")
-        except Exception as e:
-            print(f"Other error: {e}")
-
-        self.upload_ui.dpll_time_label.show()
-        self.upload_ui.dpll_time.show()
-        self.upload_ui.dpll_address_label.show()
-        self.upload_ui.dpll_address.show()
-        self.upload_ui.dpll_button.show()
-  
-        self.upload_ui.judge_label.show()
-        self.upload_ui.judge.show()
-        
-        self.calculate_and_display_optimization_rate()
-
-    def on_better_solve_button_clicked(self, pickvar_choice):
-        """执行 better_solver.exe 并传递参数以选择不同的 PickVar 函数"""
-        cnf_file_path = self.upload_ui.cnf_path.text()
-        if not cnf_file_path:
-            print("No CNF file selected.")
-            return
-
-        result_file_path = f"{cnf_file_path}_faster.res"
-        solver_path = os.path.join(self.c_programs_dir, 'better_solver.exe')
-
-
-        try:
-            # 运行带参数的 better_solver.exe
-            result = subprocess.run([solver_path, cnf_file_path, str(pickvar_choice)], check=True, capture_output=True, text=True, encoding='utf-8')
-            print(f"Solving completed with PickVar_{pickvar_choice}, results saved to: {result_file_path}")
-            print(f"Solver output: {result.stdout}")
-
-            self.upload_ui.cdcl_address.setText(result_file_path)
-            self.upload_ui.cdcl_address.show()
-            
-            # 读取生成的结果文件
-            if os.path.exists(result_file_path):
-                with open(result_file_path, 'r') as f:
-                    lines = f.readlines()
-                    result_status = None
-                    solve_time = None
-                    for line in lines:
-                        if line.startswith('s'):
-                            result_status = line.strip()
-                        elif line.startswith('t'):
-                            solve_time = line.strip().split(' ')[1]
-
-                    if result_status == 's 1':
-                        self.upload_ui.cdcl_time.setText(f"{solve_time} ms")
-                        self.upload_ui.judge.setText("有解")
-                    elif result_status == 's 0':
-                        self.upload_ui.cdcl_time.setText(f"{solve_time} ms")
-                        self.upload_ui.judge.setText("无解")
-
-        except subprocess.CalledProcessError as e:
-            print(f"Error running solver: {e}")
-            print(f"Solver error output: {e.stderr}")
-        except Exception as e:
-            print(f"Other error: {e}")
-
-        self.upload_ui.cdcl_time_label.show()
-        self.upload_ui.cdcl_time.show()
-        self.upload_ui.cdcl_address_label.show()
-        self.upload_ui.cdcl_address.show()
-        self.upload_ui.cdcl_button.show()
-
-        self.upload_ui.judge_label.show()
-        self.upload_ui.judge.show()
-        
-        self.calculate_and_display_optimization_rate()
-
-    def calculate_and_display_optimization_rate(self):
-        """计算优化率并显示"""
-        dpll_time_text = self.upload_ui.dpll_time.text().replace(" ms", "")
-        cdcl_time_text = self.upload_ui.cdcl_time.text().replace(" ms", "")
-
-        # 检查 dpll_time 和 cdcl_time 是否都有值
-        if cdcl_time_text and (not dpll_time_text or dpll_time_text == "(未实现)"):
-            # 如果 dpll_time 没有值或为初始状态，且 cdcl_time 有值，显示为无限大
-            self.upload_ui.optimization_rate.setText("∞")
-            self.upload_ui.rate_label.show()
-            self.upload_ui.optimization_rate.show()
-        elif dpll_time_text and cdcl_time_text:
-            # 如果 dpll_time 和 cdcl_time 都有值，则计算优化率
-            dpll_time = float(dpll_time_text)
-            cdcl_time = float(cdcl_time_text)
-        
-            optimization_rate = ((dpll_time - cdcl_time) / dpll_time) * 100
-            self.upload_ui.optimization_rate.setText(f"{optimization_rate:.2f}%")
-            self.upload_ui.rate_label.show()
-            self.upload_ui.optimization_rate.show()
-
-    def open_source_file(self):
-        file_path = self.upload_ui.cnf_path.text()
-        if file_path:
-            QtGui.QDesktopServices.openUrl(QtCore.QUrl.fromLocalFile(file_path))
-
-    def open_saved_file(self):
-        saved_path = self.upload_ui.saved_path.text()
-        if saved_path:
-            QtGui.QDesktopServices.openUrl(QtCore.QUrl.fromLocalFile(saved_path))
-
-    def open_dpll_file(self):
-        dpll_path = self.upload_ui.dpll_address.text()
-        if dpll_path:
-            QtGui.QDesktopServices.openUrl(QtCore.QUrl.fromLocalFile(dpll_path))
-
-    def open_cdcl_file(self):
-        cdcl_path = self.upload_ui.cdcl_address.text()
-        if cdcl_path:
-            QtGui.QDesktopServices.openUrl(QtCore.QUrl.fromLocalFile(cdcl_path))
 
     def check_solution(self):
         """检查用户的答案是否正确"""

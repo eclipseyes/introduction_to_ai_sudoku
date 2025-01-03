@@ -59,7 +59,7 @@
      </font>
     </property>
     <property name="text">
-     <string>SAT求解</string>
+     <string>人工设置初盘</string>
     </property>
    </widget>
    <widget class="QPushButton" name="puzzle">
@@ -78,7 +78,7 @@
      </font>
     </property>
     <property name="text">
-     <string>随机出题</string>
+     <string>自动生成初盘</string>
     </property>
    </widget>
    <widget class="QPushButton" name="mode_back">
