@@ -18,16 +18,6 @@ int isSafe(int grid[N][N], int row, int col, int num)
             if (grid[x + startRow][y + startCol] == num)
                 return 0;
 
-    // 检查对角线
-    if (row == col) // 主对角线
-        for (x = 0; x < N; x++)
-            if (grid[x][x] == num)
-                return 0;
-
-    if (row + col == N - 1) // 次对角线
-        for (x = 0; x < N; x++)
-            if (grid[x][N - x - 1] == num)
-                return 0;
 
     return 1;
 }
@@ -271,48 +261,6 @@ void addRowColumnBoxConstraints(FILE *file_nat)
     }
 }
 
-// 生成对角线约束子句
-void addDiagonalConstraints(FILE *file_nat)
-{
-    // 主对角线约束
-    for (int num = 1; num <= 9; num++)
-    {
-        for (int i = 1; i <= 9; i++)
-        {
-            fprintf(file_nat, "%d ", semanticToNatural(i, i, num));
-        }
-        fprintf(file_nat, "0\n");
-
-        // 主对角线互斥性约束
-        for (int i = 1; i <= 9; i++)
-        {
-            for (int j = i + 1; j <= 9; j++)
-            {
-                fprintf(file_nat, "-%d -%d 0\n", semanticToNatural(i, i, num), semanticToNatural(j, j, num));
-            }
-        }
-    }
-
-    // 次对角线约束
-    for (int num = 1; num <= 9; num++)
-    {
-        for (int i = 1; i <= 9; i++)
-        {
-            fprintf(file_nat, "%d ", semanticToNatural(i, 10 - i, num));
-        }
-        fprintf(file_nat, "0\n");
-
-        // 次对角线互斥性约束
-        for (int i = 1; i <= 9; i++)
-        {
-            for (int j = i + 1; j <= 9; j++)
-            {
-                fprintf(file_nat, "-%d -%d 0\n", semanticToNatural(i, 10 - i, num), semanticToNatural(j, 10 - j, num));
-            }
-        }
-    }
-}
-
 void createSudokuToCNF(const char *semanticFile, const char *naturalFile, int holes)
 {
     int grid[N][N] = {0};
@@ -373,7 +321,7 @@ void createSudokuToCNF(const char *semanticFile, const char *naturalFile, int ho
     // 添加数独约束子句
     addCellConstraints(file_nat);
     addRowColumnBoxConstraints(file_nat);
-    addDiagonalConstraints(file_nat);
+
 
     fclose(file_sem);
     fclose(file_nat);
