@@ -92,7 +92,7 @@ int main(int argc, char *argv[]) {
     if (solution_count == 0) {
         printf("No solution exists\n");
     } else if (solution_count == 1) {
-        printf("Unique solution exists\n");
+        printf("unique");
     } else {
         printf("Multiple solutions exist\n");
     }
