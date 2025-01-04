@@ -15,13 +15,17 @@ from Ui_mode import Ui_MainWindow as Ui_ModeWindow
 from Ui_upload import Ui_MainWindow as Ui_UploadWindow
 from Ui_difficulty import Ui_MainWindow as Ui_DifficultyWindow
 from Ui_game import Ui_MainWindow as Ui_GameWindow
-from Ui_manual_game import Ui_MainWindow as Ui_ManualGameWindow  # 确保有这个 UI 文件
+
 
 class MainApp(QMainWindow):
     def __init__(self):
         super(MainApp, self).__init__()
         self.stacked_widget = QStackedWidget()
         self.setCentralWidget(self.stacked_widget)
+        self.semantic_file_path=None
+        self.natural_file_path=None
+        self.answer_file_path = "solution.txt"
+
 
         # 动态获取C程序的路径
         if hasattr(sys, '_MEIPASS'):
@@ -36,7 +40,7 @@ class MainApp(QMainWindow):
         self.upload_ui = Ui_UploadWindow()
         self.difficulty_ui = Ui_DifficultyWindow()
         self.game_ui = Ui_GameWindow()
-        self.manual_game_ui = Ui_ManualGameWindow()  # 新增 manual_game UI
+
 
         # 加载界面
         self.start_widget = QMainWindow()
@@ -63,9 +67,7 @@ class MainApp(QMainWindow):
         self.game_ui.setupUi(self.game_widget)
         self.stacked_widget.addWidget(self.game_widget)
 
-        self.manual_game_widget = QMainWindow()  # 新增 manual_game widget
-        self.manual_game_ui.setupUi(self.manual_game_widget)
-        self.stacked_widget.addWidget(self.manual_game_widget)
+
 
         # 初始化 upload 页面时设置 sudoku_table 格式
         self.setup_sudoku_table(self.upload_ui.sudoku_table)
@@ -85,8 +87,8 @@ class MainApp(QMainWindow):
         self.difficulty_ui.difficulty_back.clicked.connect(self.show_mode)
         self.upload_ui.upload_back.clicked.connect(self.show_mode)
 
-        # 绑定 upload 页面中的 game_button 以显示 manual_game 页面
-        self.upload_ui.game_button.clicked.connect(self.show_manual_game)
+        # 绑定 upload 页面中的 game_button 以显示 game 页面
+        self.upload_ui.game_button.clicked.connect(self.show_game)
 
         # 绑定难度按钮，传递不同的参数来生成对角线数独题目
         self.difficulty_ui.easy.clicked.connect(lambda: self.prepare_game("easy"))
@@ -95,23 +97,17 @@ class MainApp(QMainWindow):
         self.difficulty_ui.expert.clicked.connect(lambda: self.prepare_game("expert"))
 
         # 绑定 game 页面按钮
-        self.game_ui.game_back.clicked.connect(self.show_difficulty)
+        self.game_ui.game_back.clicked.connect(self.show_mode)
         self.game_ui.check_button.clicked.connect(self.check_solution)
         self.game_ui.peek_button.clicked.connect(self.peek_solution)
         self.game_ui.show_button.clicked.connect(self.show_solution)
 
-        # 绑定 manual_game 页面按钮（假设 manual_game 页面也有类似的按钮）
-        self.manual_game_ui.game_back.clicked.connect(self.show_upload)  # 返回 upload 页面
-        self.manual_game_ui.check_button.clicked.connect(self.check_solution_manual)
-        self.manual_game_ui.peek_button.clicked.connect(self.peek_solution_manual)
-        self.manual_game_ui.show_button.clicked.connect(self.show_solution_manual)
+
 
         # 绑定 upload 页面中的 set_button
         self.upload_ui.set_button.clicked.connect(self.set_puzzle)
 
-        # 初始化 manual_game 页面时设置 sudoku_table 格式
-        self.setup_sudoku_table(self.manual_game_ui.sudoku_table)
-        self.manual_game_ui.sudoku_table.setEditTriggers(QtWidgets.QAbstractItemView.AllEditTriggers)  # 允许编辑
+
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_game_time)
@@ -119,11 +115,9 @@ class MainApp(QMainWindow):
         self.peek_count = 0
         self.game_time_seconds = 0
         self.is_answer_shown = False
-        self.answer_file_path = "solution.txt"
+
         self.previous_user_input = []  # 用于存储用户输入的状态
 
-        # CNF 文件路径（用于 upload 和 manual_game 之间共享）
-        self.upload_cnf_file = "uploaded_puzzle.cnf"
 
     # 通用方法来设置 sudoku_table 的格式
     def setup_sudoku_table(self, table):
@@ -168,27 +162,21 @@ class MainApp(QMainWindow):
 
     # 显示 game 页面
     def show_game(self):
+
+
+
         self.game_ui.check_information.setVisible(False)
         table = self.game_ui.sudoku_table
         if table:
             self.setup_sudoku_table(table)
             table.setEditTriggers(QtWidgets.QAbstractItemView.AllEditTriggers)  # 允许编辑
+        if self.semantic_file_path:
+            self.display_puzzle(self.semantic_file_path)
+        else:
+            print("semantic_file_path is not set")
         self.stacked_widget.setCurrentWidget(self.game_widget)
 
-    # 显示 manual_game 页面
-    def show_manual_game(self):
-        self.manual_game_ui.check_information.setVisible(False)
-        table = self.manual_game_ui.sudoku_table
-        if table:
-            self.setup_sudoku_table(table)
-            table.setEditTriggers(QtWidgets.QAbstractItemView.AllEditTriggers)  # 允许编辑
 
-            # 加载 CNF 文件到 manual_game 界面
-            if os.path.exists(self.upload_cnf_file):
-                self.load_puzzle_to_ui_manual(self.upload_cnf_file)
-            else:
-                QMessageBox.warning(self, "警告", "CNF 文件未找到。请先上传合法的数独格局。")
-        self.stacked_widget.setCurrentWidget(self.manual_game_widget)
 
     # 显示 main 页面
     def show_main(self):
@@ -224,11 +212,16 @@ class MainApp(QMainWindow):
         # 获取数值型的难度级别
         difficulty_level = difficulty_levels.get(difficulty, "1")
 
-        # 调用C程序生成对角线数独题目
+        # 调用C程序生成数独题目
         semantic_file_path = "generated_puzzle.cnf"  # 生成的语义编码CNF文件路径
-        natural_file_path = "altered_puzzle.cnf"     # 生成的自然编码CNF文件路径
-        generator_path = os.path.join(self.c_programs_dir, 'generate_diagonal_sudoku.exe')
 
+         # 设置 semantic_file_path
+        self.semantic_file_path = semantic_file_path
+        print(f"semantic_file_path set to: {self.semantic_file_path}")
+
+        natural_file_path = "altered_puzzle.cnf"     # 生成的自然编码CNF文件路径
+        self.natural_file_path = natural_file_path
+        generator_path = os.path.join(self.c_programs_dir, 'generate_diagonal_sudoku.exe')
         solver_path = os.path.join(self.c_programs_dir, 'sudoku_solver.exe')
 
         try:
@@ -271,7 +264,7 @@ class MainApp(QMainWindow):
 
         # 清空游戏界面并显示新生成的数独
         self.show_game()
-        self.display_puzzle(semantic_file_path)
+        # self.display_puzzle(semantic_file_path)
 
     def convert_solution_to_grid(self, solution_cnf_path):
         """
@@ -375,10 +368,7 @@ class MainApp(QMainWindow):
             print(f"Error loading puzzle to UI: {e}")
             QMessageBox.critical(self, "错误", f"加载数独到 UI 时出错:\n{e}")
 
-    def load_puzzle_to_ui_manual(self, puzzle_file_path):
-        """加载解析后的数独网格并显示在 manual_game 界面上"""
-        self.load_puzzle_to_ui(self.manual_game_ui.sudoku_table, puzzle_file_path)
-        print("Successfully loaded puzzle into the manual_game UI.")  # 添加调试信息
+
 
     def set_puzzle(self):
         """处理 upload 页面中 set_button 的点击事件"""
@@ -445,15 +435,27 @@ class MainApp(QMainWindow):
             # 将数独格局转换为 CNF 文件并保存
             # 假设有一个程序 convert_to_cnf.exe 将数独格局转换为 CNF
             convert_program = os.path.join(self.c_programs_dir, 'convert_to_cnf.exe')
+
+            puzzle_file_path = "uploaded_puzzle.txt"  # 输入的数独文件
+            semantic_file_path = "uploaded_semantic_puzzle.cnf"  # 转换后的 CNF 文件
+
+             # 设置 semantic_file_path
+            self.semantic_file_path = semantic_file_path
+            print(f"semantic_file_path set to: {self.semantic_file_path}")
+
+            natural_file_path = "uploaded_natural_puzzle.cnf"  # 转换后的 CNF 文件
+            self.natural_file_path = natural_file_path
+
+            solver_path = os.path.join(self.c_programs_dir, 'sudoku_solver.exe')
             try:
                 result = subprocess.run(
-                    [convert_program, puzzle_file_path, self.upload_cnf_file],
+                    [convert_program, puzzle_file_path, semantic_file_path,natural_file_path],
                     check=True,
                     capture_output=True,
                     text=True,
                     encoding='utf-8'
                 )
-                print(f"Converted uploaded puzzle to CNF, saved to {self.upload_cnf_file}")
+
             except subprocess.CalledProcessError as e:
                 print(f"Error converting puzzle to CNF: {e}")
                 QMessageBox.critical(self, "错误", f"转换数独格局到 CNF 时出错:\n{e.stderr}")
@@ -462,6 +464,37 @@ class MainApp(QMainWindow):
                 print(f"Other error: {e}")
                 QMessageBox.critical(self, "错误", f"其他错误:\n{e}")
                 return
+            
+            try:
+                # 运行解算器
+                result = subprocess.run(
+                    [solver_path, natural_file_path],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                    encoding='utf-8'
+                )
+                print("Solution file generated.")
+                print(f"Solver output: {result.stdout}")
+    
+                # 转换解文件为数独网格格式
+                if not self.convert_solution_to_grid("solution.cnf"):
+                    print("Error converting solution to grid format.")
+                    QMessageBox.critical(self, "错误", "转换解答时出错。")
+                    return
+
+            except subprocess.CalledProcessError as e:
+                print(f"Error generating puzzle or solution: {e}")
+                print(f"C program error output: {e.stderr}")
+                QMessageBox.critical(self, "错误", f"生成数独或解答时出错:\n{e.stderr}")
+                return
+            except Exception as e:
+                print(f"Other error: {e}")
+                QMessageBox.critical(self, "错误", f"其他错误:\n{e}")
+                return
+            
+
+
         else:
             # 不合法
             self.upload_ui.legal_message.setText("不合法，再试一试")
@@ -497,34 +530,7 @@ class MainApp(QMainWindow):
         self.game_ui.check_information.setVisible(True)
         QTimer.singleShot(5000, lambda: self.game_ui.check_information.setVisible(False))
 
-    def check_solution_manual(self):
-        """检查 manual_game 用户的答案是否正确"""
-        if not os.path.exists(self.answer_file_path):
-            print("Error: Solution file not found.")
-            QMessageBox.warning(self, "警告", "解答文件未找到。")
-            return
 
-        correct_grid = []
-        with open(self.answer_file_path, 'r') as f:
-            correct_grid = [line.strip().split() for line in f.readlines()]
-
-        table = self.manual_game_ui.sudoku_table
-        wrong_count = 0
-
-        for row in range(table.rowCount()):
-            for col in range(table.columnCount()):
-                item = table.item(row, col)
-                if item and item.text().isdigit():
-                    if item.text() != correct_grid[row][col]:
-                        wrong_count += 1
-
-        if wrong_count == 0:
-            self.manual_game_ui.check_information.setText("填写全部正确！")
-        else:
-            self.manual_game_ui.check_information.setText(f"您当前填错了 {wrong_count} 个数字。")
-
-        self.manual_game_ui.check_information.setVisible(True)
-        QTimer.singleShot(5000, lambda: self.manual_game_ui.check_information.setVisible(False))
 
     def peek_solution(self):
         """偷看答案"""
@@ -561,62 +567,7 @@ class MainApp(QMainWindow):
 
             QTimer.singleShot(5000, lambda: self.hide_peek())
 
-    def peek_solution_manual(self):
-        """偷看答案 for manual_game"""
-        table = self.manual_game_ui.sudoku_table  # 确保 table 在函数开始时定义
 
-        if not self.is_answer_shown:
-            self.peek_count += 1
-
-            if not os.path.exists(self.answer_file_path):
-                print("Error: Solution file not found.")
-                QMessageBox.warning(self, "警告", "解答文件未找到。")
-                return
-
-            # 清空并保存用户当前输入的状态
-            self.previous_user_input = []
-
-            for row in range(table.rowCount()):
-                row_data = []
-                for col in range(table.columnCount()):
-                    item = table.item(row, col)
-                    row_data.append(item.text() if item else "")
-                self.previous_user_input.append(row_data)
-
-            # 显示答案
-            with open(self.answer_file_path, 'r') as f:
-                answer_lines = [line.strip().split() for line in f.readlines()]
-
-            for row in range(table.rowCount()):
-                for col in range(table.columnCount()):
-                    item = table.item(row, col)
-                    if item and item.flags() & Qt.ItemIsEditable:  # 如果是可编辑单元格，则显示答案
-                        item.setText(answer_lines[row][col])
-                        item.setForeground(QtGui.QBrush(Qt.black))
-
-            QTimer.singleShot(5000, lambda: self.hide_peek_manual())
-
-    def hide_peek(self):
-        """隐藏偷看的答案"""
-        table = self.game_ui.sudoku_table
-        for row in range(table.rowCount()):
-            for col in range(table.columnCount()):
-                item = table.item(row, col)
-                if item and item.flags() & Qt.ItemIsEditable:  # 如果是可编辑单元格，则隐藏
-                    # 恢复用户之前输入的内容
-                    item.setText(self.previous_user_input[row][col] if self.previous_user_input else "")
-                    item.setForeground(QtGui.QBrush(Qt.blue))  # 恢复为蓝色字体
-
-    def hide_peek_manual(self):
-        """隐藏偷看的答案 for manual_game"""
-        table = self.manual_game_ui.sudoku_table
-        for row in range(table.rowCount()):
-            for col in range(table.columnCount()):
-                item = table.item(row, col)
-                if item and item.flags() & Qt.ItemIsEditable:  # 如果是可编辑单元格，则隐藏
-                    # 恢复用户之前输入的内容
-                    item.setText(self.previous_user_input[row][col] if self.previous_user_input else "")
-                    item.setForeground(QtGui.QBrush(Qt.blue))  # 恢复为蓝色字体
 
     def show_solution(self):
         """显示完整的答案"""
@@ -648,35 +599,7 @@ class MainApp(QMainWindow):
 
         self.is_answer_shown = True
 
-    def show_solution_manual(self):
-        """显示完整的答案 for manual_game"""
-        if not os.path.exists(self.answer_file_path):
-            print("Error: Solution file not found.")
-            QMessageBox.warning(self, "警告", "解答文件未找到。")
-            return
-
-        with open(self.answer_file_path, 'r') as f:
-            answer_lines = [line.strip().split() for line in f.readlines()]
-
-        table = self.manual_game_ui.sudoku_table
-
-        for row in range(table.rowCount()):
-            for col in range(table.columnCount()):
-                item = table.item(row, col)
-                if item:
-                    item.setText(answer_lines[row][col])
-                    item.setForeground(QtGui.QBrush(Qt.black))
-
-        # 停止计时但显示时间
-        self.timer.stop()
-        self.manual_game_ui.game_time.setVisible(True)  # 确保游戏时间显示
-        self.manual_game_ui.game_time.setText(f"游戏时间：{self.game_time_seconds // 60:02}:{self.game_time_seconds % 60:02}")
-
-        # 显示偷看次数
-        self.manual_game_ui.peek_count.setVisible(True)
-        self.manual_game_ui.peek_count.setText(f"偷看次数：{self.peek_count}")
-
-        self.is_answer_shown = True
+  
 
     def update_game_time(self):
         """更新游戏时间"""
@@ -686,13 +609,7 @@ class MainApp(QMainWindow):
             seconds = self.game_time_seconds % 60
             self.game_ui.game_time.setText(f"游戏时间：{minutes:02}:{seconds:02}")
 
-    def update_game_time_manual(self):
-        """更新游戏时间 for manual_game"""
-        if not self.is_answer_shown:
-            self.game_time_seconds += 1
-            minutes = self.game_time_seconds // 60
-            seconds = self.game_time_seconds % 60
-            self.manual_game_ui.game_time.setText(f"游戏时间：{minutes:02}:{seconds:02}")
+  
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

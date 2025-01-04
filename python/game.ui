@@ -92,8 +92,8 @@
    <widget class="QPushButton" name="show_button">
     <property name="geometry">
      <rect>
-      <x>890</x>
-      <y>440</y>
+      <x>860</x>
+      <y>260</y>
       <width>161</width>
       <height>51</height>
      </rect>
@@ -105,7 +105,7 @@
      </font>
     </property>
     <property name="text">
-     <string>显示答案</string>
+     <string>显示题解</string>
     </property>
    </widget>
    <widget class="QLabel" name="peek_count">
@@ -347,6 +347,16 @@
      </property>
     </column>
    </widget>
+   <zorder>check_information</zorder>
+   <zorder>peek_count</zorder>
+   <zorder>peek_button</zorder>
+   <zorder>check_button</zorder>
+   <zorder>game_time</zorder>
+   <zorder>listView</zorder>
+   <zorder>label</zorder>
+   <zorder>show_button</zorder>
+   <zorder>game_back</zorder>
+   <zorder>sudoku_table</zorder>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
