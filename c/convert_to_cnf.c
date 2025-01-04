@@ -9,7 +9,7 @@
 
 // 将语义编码 (i,j,k) 转换为自然编码
 int semantic_to_natural(int i, int j, int k) {
-    return (i - 1) * 81 + (j - 1) * 9 + k;
+    return ((i - 1) * 81 + (j - 1) * 9 + k);
 }
 
 // 添加单元格约束（每个单元格至少一个数字，每个单元格至多一个数字）
@@ -133,22 +133,27 @@ int main(int argc, char *argv[]) {
         perror("Error creating semantic CNF file");
         return 1;
     }
-    for(int i=0;i<N;i++) {
-        for(int j=0;j<N;j++) {
-            int num = grid[i][j];
-            if(num != UNASSIGNED){
-                fprintf(f_sem, "%d%d%d 0\n", i+1, j+1, num);
-            }
-        }
-    }
-    fclose(f_sem);
-    
-    // 写入自然编码的 CNF 文件
+
+        // 写入自然编码的 CNF 文件
     FILE *f_nat = fopen(natural_cnf, "w");
     if(!f_nat){
         perror("Error creating natural CNF file");
         return 1;
     }
+
+    for(int i=0;i<N;i++) {
+        for(int j=0;j<N;j++) {
+            int num = grid[i][j];
+            if(num != UNASSIGNED){
+                fprintf(f_sem, "%d%d%d 0\n", i+1, j+1, num);
+                int natural_encoded = semantic_to_natural(i + 1, j+ 1, num);
+                fprintf(f_nat, "%d 0\n", natural_encoded);
+            }
+        }
+    }
+    fclose(f_sem);
+    
+
     // 添加单元格约束
     add_cell_constraints(f_nat);
     // 添加行约束

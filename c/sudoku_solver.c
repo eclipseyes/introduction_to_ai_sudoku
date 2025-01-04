@@ -14,17 +14,17 @@ status DpllSolver(ClauseNode *s, int *truth_table)
     {
         RecordTruth(unit_clause, truth_table);
         int var = unit_clause->right->data;
-        printf("Found unit clause with variable %d\n", var);
+
         RemoveVar(s, var);
 
         if (s->down == NULL)
         {
-            printf("Solution FOUND\n");
+            
             return FOUND;
         }
         else if (IsEmptyClause(s))
         {
-            printf("Empty clause detected, returning NOTFOUND\n");
+           
             return NOTFOUND;
         }
 
@@ -33,14 +33,14 @@ status DpllSolver(ClauseNode *s, int *truth_table)
     }
 
     int var = PickVar(s);
-    printf("Picking variable %d for branching...\n", var);
+
     if (DpllSolver(AddClause(CopyS(s), var), truth_table))
     {
-        printf("Branch with variable %d found a solution.\n", var);
+        
         return FOUND;
     }
 
-    printf("Trying branch with variable %d negated...\n", var);
+
     return DpllSolver(AddClause(s, -var), truth_table);
 }
 
@@ -228,7 +228,7 @@ status Print(ClauseNode *s)
         l_tmp = c_tmp->right;
         while (l_tmp)
         {
-            printf("%d ", l_tmp->data);
+
             l_tmp = l_tmp->right;
         }
         if (c_tmp->right)
